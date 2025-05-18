@@ -1,0 +1,6 @@
+@bgmarketAPI_HostAddress = http://localhost:5274
+
+GET {{bgmarketAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
