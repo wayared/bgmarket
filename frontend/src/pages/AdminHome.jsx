@@ -94,13 +94,13 @@ export default function AdminHome() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-3xl font-bold text-green-700 mb-6">Panel de Administración</h1>
+      <h1 className="text-3xl font-bold text-[#d2006e] mb-6">Panel de Administración</h1>
 
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         {/* Botón + buscador */}
         <div className="relative flex items-center gap-4 flex-grow" ref={dropdownRef}>
           <button
-            className="bg-red-600 text-white font-semibold px-5 py-2 rounded-full shadow hover:bg-red-700"
+            className="bg-[#d2006e] text-white font-semibold px-5 py-2 rounded-full shadow hover:bg-[#a30058]"
             onClick={() => setMenuOpen(!menuOpen)}
           >
             + Nuevo
@@ -114,7 +114,7 @@ export default function AdminHome() {
           {/* Dropdown manual */}
           {menuOpen && (
             <div className="absolute top-[48px] left-0 w-60 bg-white border rounded shadow z-50">
-              <p className="text-xs text-blue-600 font-bold px-4 pt-3">Acciones</p>
+              <p className="text-xs text-[#d2006e] font-bold px-4 pt-3">Acciones</p>
               <ul className="text-gray-800">
                 <li className="hover:bg-gray-100 px-4 py-2 cursor-pointer"
                   onClick={() => { setProductoEdit(null); setModalType('producto'); setMenuOpen(false); }}>

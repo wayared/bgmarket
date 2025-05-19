@@ -6,7 +6,8 @@ export default function SearchBar({ value, onChange }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder="Buscar producto..."
-      className="border border-gray-300 rounded px-4 py-2 mb-4 w-full md:w-1/2"
+      className="border rounded px-4 py-2 mb-4 w-full md:w-1/2 border-[#d2006e] focus:outline-none focus:ring-2 focus:ring-[#d2006e] focus:border-[#d2006e]"
     />
   );
 }
+

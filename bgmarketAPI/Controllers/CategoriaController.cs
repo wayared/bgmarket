@@ -9,7 +9,6 @@ namespace bgmarketAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")] // Solo administradores pueden acceder
     public class CategoriaController : ControllerBase
     {
         private readonly bgmarketContext _context;
@@ -19,12 +18,16 @@ namespace bgmarketAPI.Controllers
             _context = context;
         }
 
+        // Permitir a todos obtener la lista de categorías
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Categoria>>> GetCategorias()
         {
             return await _context.Categorias.ToListAsync();
         }
 
+        // Permitir a todos obtener una categoría por ID
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<Categoria>> GetCategoria(int id)
         {
@@ -35,11 +38,11 @@ namespace bgmarketAPI.Controllers
             return Ok(categoria);
         }
 
-        //  POST: api/categoria
+        // Solo Admin puede crear
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Categoria>> CreateCategoria(Categoria categoria)
         {
-            // ✅ Validar duplicado
             var existe = await _context.Categorias
                 .AnyAsync(c => c.nombre.ToLower() == categoria.nombre.ToLower());
 
@@ -62,8 +65,8 @@ namespace bgmarketAPI.Controllers
             return CreatedAtAction(nameof(GetCategoria), new { id = categoria.Id }, categoria);
         }
 
-
-        //  PUT: api/categoria/5
+        // Solo Admin puede actualizar
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategoria(int id, Categoria categoria)
         {
@@ -86,7 +89,8 @@ namespace bgmarketAPI.Controllers
             return NoContent();
         }
 
-        // DELETE: api/categoria/5
+        // Solo Admin puede eliminar
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteCategoria(int id)
         {

@@ -46,9 +46,11 @@ namespace bgmarketAPI.Controllers
                 return BadRequest(new { message = "El nombre de usuario ya existe" });
             }
 
+            usuario.rol = usuario.rol?.ToLower() ?? "cliente"; // Por defecto cliente
             usuario.password = PasswordHelper.HashPassword(usuario.password);
             usuario.fechaCreacion = DateTime.UtcNow;
             usuario.Activo = true;
+
 
             _context.Usuarios.Add(usuario);
 

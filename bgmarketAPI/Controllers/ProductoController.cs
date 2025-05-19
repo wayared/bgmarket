@@ -9,7 +9,6 @@ namespace bgmarketAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
     public class ProductoController : ControllerBase
     {
         private readonly bgmarketContext _context;
@@ -20,6 +19,7 @@ namespace bgmarketAPI.Controllers
         }
 
         // GET: api/producto
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Producto>>> GetProductos()
         {
@@ -30,6 +30,7 @@ namespace bgmarketAPI.Controllers
         }
 
         // GET: api/producto/5
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<Producto>> GetProducto(int id)
         {
@@ -43,10 +44,10 @@ namespace bgmarketAPI.Controllers
         }
 
         // POST: api/producto
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Producto>> CreateProducto(Producto producto)
         {
-            // ✅ Validar que no exista otro con el mismo código
             var existe = await _context.Productos
                 .AnyAsync(p => p.codigo.ToLower() == producto.codigo.ToLower());
 
@@ -72,8 +73,8 @@ namespace bgmarketAPI.Controllers
             return CreatedAtAction(nameof(GetProducto), new { id = producto.Id }, producto);
         }
 
-
         // PUT: api/producto/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProducto(int id, Producto producto)
         {
@@ -101,6 +102,7 @@ namespace bgmarketAPI.Controllers
         }
 
         // DELETE: api/producto/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProducto(int id)
         {

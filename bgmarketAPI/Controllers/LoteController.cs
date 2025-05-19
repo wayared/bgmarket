@@ -9,7 +9,6 @@ namespace bgmarketAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
     public class LoteController : ControllerBase
     {
         private readonly bgmarketContext _context;
@@ -20,6 +19,8 @@ namespace bgmarketAPI.Controllers
         }
 
         // GET: api/lote
+        // Acceso público
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Lote>>> GetLotes()
         {
@@ -30,6 +31,8 @@ namespace bgmarketAPI.Controllers
         }
 
         // GET: api/lote/5
+        // Acceso público
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<Lote>> GetLote(int id)
         {
@@ -43,10 +46,11 @@ namespace bgmarketAPI.Controllers
         }
 
         // POST: api/lote
+        // Solo Admin puede crear
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Lote>> CreateLote(Lote lote)
         {
-            // ✅ Verificar duplicado
             var duplicado = await _context.Lotes.AnyAsync(l =>
                 l.numeroLote.ToLower() == lote.numeroLote.ToLower() &&
                 l.productoId == lote.productoId);
@@ -72,12 +76,12 @@ namespace bgmarketAPI.Controllers
             ));
 
             await _context.SaveChangesAsync();
-
             return CreatedAtAction(nameof(GetLote), new { id = lote.Id }, lote);
         }
 
-
         // PUT: api/lote/5
+        // Solo Admin puede editar
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateLote(int id, Lote lote)
         {
@@ -105,6 +109,8 @@ namespace bgmarketAPI.Controllers
         }
 
         // DELETE: api/lote/5
+        // Solo Admin puede eliminar
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteLote(int id)
         {

@@ -9,7 +9,7 @@ namespace bgmarketAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize]  // Solo requiere que el usuario esté autenticado, sin restricción de rol
     public class MovimientoInventarioController : ControllerBase
     {
         private readonly bgmarketContext _context;
@@ -84,7 +84,7 @@ namespace bgmarketAPI.Controllers
 
             _context.MovimientosInventario.Add(movimiento);
 
-            // ✅ Registrar log con LogHelper
+            // Registrar log con LogHelper
             _context.LogsSistema.Add(LogHelper.CrearLog(
                 HttpContext,
                 input.tipoMovimiento.ToUpper(),
