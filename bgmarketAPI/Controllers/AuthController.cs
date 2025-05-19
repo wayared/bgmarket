@@ -42,7 +42,8 @@ namespace bgmarketAPI.Controllers
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.usuario),
-                new Claim("rol", user.rol),
+                new Claim(ClaimTypes.Role, user.rol),     // Para backend
+                new Claim("rol", user.rol),               // Para frontend
                 new Claim("id", user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
 
