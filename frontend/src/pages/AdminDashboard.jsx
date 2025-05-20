@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import AdminHome from './AdminHome';
 import ManageUsers from './ManageUsers';
+import ManageInventory from './ManageInventory'; // Importa el componente nuevo
 import { AuthContext } from '../auth/AuthProvider'; // Ajusta la ruta según tu estructura
 
 export default function AdminDashboard() {
@@ -13,6 +14,8 @@ export default function AdminDashboard() {
         return <AdminHome />;
       case 'usuarios':
         return <ManageUsers />;
+      case 'inventario':
+        return <ManageInventory />; // Nuevo caso para movimientos de inventario
       default:
         return <AdminHome />;
     }
@@ -46,6 +49,18 @@ export default function AdminDashboard() {
               onClick={() => setActiveView('usuarios')}
             >
               Gestionar Usuarios
+            </button>
+          </li>
+          <li>
+            <button
+              className={`w-full text-left px-4 py-2 rounded ${
+                activeView === 'inventario'
+                  ? 'bg-[#f5d4e4] text-[#d2006e] font-semibold'
+                  : 'hover:bg-[#fce8f1]'
+              }`}
+              onClick={() => setActiveView('inventario')}
+            >
+              Gestionar Inventario
             </button>
           </li>
         </ul>

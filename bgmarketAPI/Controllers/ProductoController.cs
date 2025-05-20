@@ -18,15 +18,35 @@ namespace bgmarketAPI.Controllers
             _context = context;
         }
 
-        // GET: api/producto
+        // GET: api/producto?page=1&pageSize=10
         [AllowAnonymous]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Producto>>> GetProductos()
+        public async Task<ActionResult<IEnumerable<Producto>>> GetProductos([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            return await _context.Productos
-                .Include(p => p.Categoria)
-                .Include(p => p.Lotes)
-                .ToListAsync();
+            try
+            {
+                if (page <= 0) page = 1;
+                if (pageSize <= 0 || pageSize > 100) pageSize = 10;
+
+                var totalItems = await _context.Productos.CountAsync();
+
+                var productos = await _context.Productos
+                    .Include(p => p.Categoria)
+                    .Include(p => p.Lotes)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                Response.Headers.Add("X-Total-Count", totalItems.ToString());
+                Response.Headers.Add("X-Page", page.ToString());
+                Response.Headers.Add("X-PageSize", pageSize.ToString());
+
+                return Ok(productos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno del servidor", detail = ex.Message });
+            }
         }
 
         // GET: api/producto/5
@@ -34,13 +54,22 @@ namespace bgmarketAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Producto>> GetProducto(int id)
         {
-            var producto = await _context.Productos
-                .Include(p => p.Categoria)
-                .Include(p => p.Lotes)
-                .FirstOrDefaultAsync(p => p.Id == id);
+            try
+            {
+                var producto = await _context.Productos
+                    .Include(p => p.Categoria)
+                    .Include(p => p.Lotes)
+                    .FirstOrDefaultAsync(p => p.Id == id);
 
-            if (producto == null) return NotFound();
-            return Ok(producto);
+                if (producto == null)
+                    return NotFound(new { message = "Producto no encontrado" });
+
+                return Ok(producto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno del servidor", detail = ex.Message });
+            }
         }
 
         // POST: api/producto
@@ -48,29 +77,37 @@ namespace bgmarketAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Producto>> CreateProducto(Producto producto)
         {
-            var existe = await _context.Productos
-                .AnyAsync(p => p.codigo.ToLower() == producto.codigo.ToLower());
-
-            if (existe)
+            try
             {
-                return BadRequest(new { message = "Ya existe un producto con ese código." });
+                if (producto == null || string.IsNullOrWhiteSpace(producto.codigo))
+                    return BadRequest(new { message = "Datos inválidos para el producto" });
+
+                var existe = await _context.Productos
+                    .AnyAsync(p => p.codigo.ToLower() == producto.codigo.ToLower());
+
+                if (existe)
+                    return BadRequest(new { message = "Ya existe un producto con ese código." });
+
+                producto.fechaCreacion = DateTime.UtcNow;
+                producto.activo = true;
+
+                _context.Productos.Add(producto);
+
+                _context.LogsSistema.Add(LogHelper.CrearLog(
+                    HttpContext,
+                    "CREAR",
+                    "Producto",
+                    $"Producto '{producto.nombre}' fue creado."
+                ));
+
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetProducto), new { id = producto.Id }, producto);
             }
-
-            producto.fechaCreacion = DateTime.UtcNow;
-            producto.activo = true;
-
-            _context.Productos.Add(producto);
-
-            _context.LogsSistema.Add(LogHelper.CrearLog(
-                HttpContext,
-                "CREAR",
-                "Producto",
-                $"Producto '{producto.nombre}' fue creado."
-            ));
-
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetProducto), new { id = producto.Id }, producto);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno del servidor", detail = ex.Message });
+            }
         }
 
         // PUT: api/producto/5
@@ -78,27 +115,36 @@ namespace bgmarketAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProducto(int id, Producto producto)
         {
-            if (id != producto.Id) return BadRequest();
+            try
+            {
+                if (id != producto.Id)
+                    return BadRequest(new { message = "El ID no coincide con el producto proporcionado" });
 
-            var existing = await _context.Productos.FindAsync(id);
-            if (existing == null) return NotFound();
+                var existing = await _context.Productos.FindAsync(id);
+                if (existing == null)
+                    return NotFound(new { message = "Producto no encontrado" });
 
-            existing.nombre = producto.nombre;
-            existing.descripcion = producto.descripcion;
-            existing.codigo = producto.codigo;
-            existing.unidadMedida = producto.unidadMedida;
-            existing.categoriaId = producto.categoriaId;
-            existing.activo = producto.activo;
+                existing.nombre = producto.nombre;
+                existing.descripcion = producto.descripcion;
+                existing.codigo = producto.codigo;
+                existing.unidadMedida = producto.unidadMedida;
+                existing.categoriaId = producto.categoriaId;
+                existing.activo = producto.activo;
 
-            _context.LogsSistema.Add(LogHelper.CrearLog(
-                HttpContext,
-                "ACTUALIZAR",
-                "Producto",
-                $"Producto ID {id} actualizado."
-            ));
+                _context.LogsSistema.Add(LogHelper.CrearLog(
+                    HttpContext,
+                    "ACTUALIZAR",
+                    "Producto",
+                    $"Producto ID {id} actualizado."
+                ));
 
-            await _context.SaveChangesAsync();
-            return NoContent();
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno del servidor", detail = ex.Message });
+            }
         }
 
         // DELETE: api/producto/5
@@ -106,20 +152,28 @@ namespace bgmarketAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProducto(int id)
         {
-            var producto = await _context.Productos.FindAsync(id);
-            if (producto == null) return NotFound();
+            try
+            {
+                var producto = await _context.Productos.FindAsync(id);
+                if (producto == null)
+                    return NotFound(new { message = "Producto no encontrado" });
 
-            _context.Productos.Remove(producto);
+                _context.Productos.Remove(producto);
 
-            _context.LogsSistema.Add(LogHelper.CrearLog(
-                HttpContext,
-                "ELIMINAR",
-                "Producto",
-                $"Producto ID {id} eliminado."
-            ));
+                _context.LogsSistema.Add(LogHelper.CrearLog(
+                    HttpContext,
+                    "ELIMINAR",
+                    "Producto",
+                    $"Producto ID {id} eliminado."
+                ));
 
-            await _context.SaveChangesAsync();
-            return NoContent();
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno del servidor", detail = ex.Message });
+            }
         }
     }
 }

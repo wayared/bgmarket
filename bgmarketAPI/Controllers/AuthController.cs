@@ -1,7 +1,4 @@
-﻿
-
-
-using bgmarketAPI.Helpers;
+﻿using bgmarketAPI.Helpers;
 using bgmarketDB;
 using bgmarketDB.Models;
 using Microsoft.AspNetCore.Identity.Data;
@@ -29,12 +26,29 @@ namespace bgmarketAPI.Controllers
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest model)
-        {   
-            var user = _context.Usuarios.FirstOrDefault(u => u.usuario == model.Username);
-            if (user == null || !PasswordHelper.VerifyPassword(user.password, model.Password)) return Unauthorized(new { message = "Usuario o contrasenia invalidos" });
-            
-            var token = GenerateJwtToken(user);
-            return Ok(new { token });
+        {
+            try
+            {
+                if (model == null || string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
+                {
+                    return BadRequest(new { message = "Usuario y contraseña son requeridos" });
+                }
+
+                var user = _context.Usuarios.FirstOrDefault(u => u.usuario == model.Username);
+
+                if (user == null || !PasswordHelper.VerifyPassword(user.password, model.Password))
+                {
+                    return Unauthorized(new { message = "Usuario o contraseña inválidos" });
+                }
+
+                var token = GenerateJwtToken(user);
+                return Ok(new { token });
+            }
+            catch (Exception ex)
+            {
+                // Aquí puedes agregar logging si usas alguna librería como Serilog, NLog, etc.
+                return StatusCode(500, new { message = "Error interno del servidor", detail = ex.Message });
+            }
         }
 
         private string GenerateJwtToken(Usuario user)
@@ -46,7 +60,6 @@ namespace bgmarketAPI.Controllers
                 new Claim("rol", user.rol),               // Para frontend
                 new Claim("id", user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
@@ -61,9 +74,7 @@ namespace bgmarketAPI.Controllers
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-
         }
-
     }
 
     public class LoginRequest

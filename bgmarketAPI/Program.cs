@@ -80,7 +80,8 @@ builder.Services.AddCors(options => // Uso de CORS
         builder
             .AllowAnyOrigin()
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowAnyHeader()
+            .WithExposedHeaders("X-Total-Count");
     });
 });
 

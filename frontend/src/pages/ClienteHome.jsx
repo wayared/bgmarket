@@ -1,9 +1,9 @@
-// src/pages/ClientHome.jsx
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import API from '../api/axios';
 import SearchBar from '../components/SearchBar';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
 import ComprarModal from '../components/modals/ComprarModal';
+import Pagination from '../components/Pagination'; // Importamos el componente
 import { toast } from 'react-toastify';
 import { AuthContext } from '../auth/AuthProvider'; 
 
@@ -12,37 +12,69 @@ export default function ClientHome() {
   const [categorias, setCategorias] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [loteSeleccionado, setLoteSeleccionado] = useState(null); // Para el modal
+  const [loteSeleccionado, setLoteSeleccionado] = useState(null);
 
   const { logout } = useContext(AuthContext);
 
-  const cargarDatos = async () => {
+  // Paginación
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const lotesPorPagina = 10;
+
+  const totalPaginas = Math.max(1, Math.ceil(totalItems / lotesPorPagina));
+
+  const cambiarPagina = (nuevaPagina) => {
+    if (nuevaPagina < 1) nuevaPagina = 1;
+    else if (nuevaPagina > totalPaginas) nuevaPagina = totalPaginas;
+    if (nuevaPagina !== paginaActual) setPaginaActual(nuevaPagina);
+  };
+
+  // Carga lotes paginados
+  const cargarLotes = useCallback(async () => {
     try {
-      const [resLotes, resCategorias] = await Promise.all([
-        API.get('/lote'),
-        API.get('/categoria')
-      ]);
-      setLotes(resLotes.data);
-      setCategorias(resCategorias.data);
+      const res = await API.get('/lote', {
+        params: { page: paginaActual, pageSize: lotesPorPagina }
+      });
+
+      const total = res.headers['x-total-count'] || res.headers['X-Total-Count'];
+      const totalNum = total ? Number(total) : 0;
+
+      setLotes(res.data);
+      setTotalItems(totalNum);
     } catch (error) {
-      toast.error('Error al cargar datos');
+      toast.error('Error al cargar lotes');
       console.error(error);
+    }
+  }, [paginaActual]);
+
+  // Carga categorías
+  const cargarCategorias = async () => {
+    try {
+      const res = await API.get('/categoria');
+      setCategorias(res.data);
+    } catch {
+      toast.error('Error al cargar categorías');
     }
   };
 
   useEffect(() => {
-    cargarDatos();
+    cargarLotes();
+  }, [cargarLotes]);
+
+  useEffect(() => {
+    cargarCategorias();
   }, []);
 
+  // Filtrado sobre lotes cargados de la página actual
   const lotesFiltrados = lotes.filter(lote =>
     (lote.producto?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     lote.producto?.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      lote.producto?.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())) &&
     (selectedCategories.length === 0 || selectedCategories.includes(lote.producto?.categoriaId))
   );
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      {/* Header with Logout */}
+      {/* Header con logout */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-[#d2006e]">Catálogo de Productos</h1>
         <button
@@ -53,7 +85,7 @@ export default function ClientHome() {
         </button>
       </div>
 
-      {/* Filters */}
+      {/* Filtros */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div className="w-full sm:w-[280px]">
           <SearchBar value={searchTerm} onChange={setSearchTerm} />
@@ -67,13 +99,14 @@ export default function ClientHome() {
         </div>
       </div>
 
-      {/* Product Cards */}
+      {/* Cards de productos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lotesFiltrados.map(lote => (
           <div key={lote.id} className="bg-white p-4 shadow rounded relative">
             <h3 className="text-lg font-semibold">{lote.producto?.nombre}</h3>
             <p className="text-gray-600">{lote.producto?.descripcion}</p>
             <p className="text-[#d2006e] font-bold mt-2">${lote.precio.toFixed(2)}</p>
+            <p className="text-gray-600 font-bold mt-2">Cantidad: {lote.cantidad}</p>
             <button
               onClick={() => setLoteSeleccionado(lote)}
               className="mt-4 w-full bg-[#d2006e] text-white py-2 rounded hover:bg-[#b3005a] transition duration-200"
@@ -84,12 +117,19 @@ export default function ClientHome() {
         ))}
       </div>
 
-      {/* Modal de compra */}
+      {/* Componente de paginación */}
+      <Pagination
+        paginaActual={paginaActual}
+        totalPaginas={totalPaginas}
+        onChangePagina={cambiarPagina}
+      />
+
+      {/* Modal compra */}
       {loteSeleccionado && (
         <ComprarModal
           lote={loteSeleccionado}
           onClose={() => setLoteSeleccionado(null)}
-          onCompraExitosa={cargarDatos}
+          onCompraExitosa={cargarLotes}
         />
       )}
     </div>
