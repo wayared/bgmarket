@@ -5,7 +5,7 @@ import CategoryMultiSelect from '../components/CategoryMultiSelect';
 import ComprarModal from '../components/modals/ComprarModal';
 import Pagination from '../components/Pagination'; // Importamos el componente
 import { toast } from 'react-toastify';
-import { AuthContext } from '../auth/AuthProvider'; 
+import { AuthContext } from '../auth/AuthProvider';
 
 export default function ClientHome() {
   const [lotes, setLotes] = useState([]);
@@ -106,7 +106,7 @@ export default function ClientHome() {
             <h3 className="text-lg font-semibold">{lote.producto?.nombre}</h3>
             <p className="text-gray-600">{lote.producto?.descripcion}</p>
             <p className="text-[#d2006e] font-bold mt-2">${lote.precio.toFixed(2)}</p>
-            <p className="text-gray-600 font-bold mt-2">Cantidad: {lote.cantidad}</p>
+            <p className="text-gray-600 font-bold mt-2">Cantidad en Stock: {lote.cantidad}</p>
             <button
               onClick={() => setLoteSeleccionado(lote)}
               className="mt-4 w-full bg-[#d2006e] text-white py-2 rounded hover:bg-[#b3005a] transition duration-200"

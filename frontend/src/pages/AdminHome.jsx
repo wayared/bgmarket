@@ -4,7 +4,6 @@ import ModalsContainer from '../components/ModalsContainer';
 import LoteCard from '../components/LoteCard';
 import SearchBar from '../components/SearchBar';
 import CategoryMultiSelect from '../components/CategoryMultiSelect';
-import Pagination from '../components/Pagination'; // Importamos el componente
 import { toast } from 'react-toastify';
 import { confirmAction } from '../utils/confirmDialog';
 
@@ -35,33 +34,25 @@ export default function AdminHome() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPaginas = Math.max(1, Math.ceil(totalItems / lotesPorPagina));
-
-  // Corrección simple para evitar páginas fuera de rango
-  useEffect(() => {
-    if (paginaActual > totalPaginas) {
-      setPaginaActual(totalPaginas);
-    }
-    if (paginaActual < 1) {
-      setPaginaActual(1);
-    }
-  }, [paginaActual, totalPaginas]);
-
-  const cargarLotes = useCallback(async () => {
+  const cargarLotes = useCallback(async (page = paginaActual) => {
     try {
+      if (page < 1) page = 1;
+      const totalPaginas = Math.ceil(totalItems / lotesPorPagina);
+      if (totalPaginas && page > totalPaginas) page = totalPaginas;
+
       const res = await API.get('/lote', {
-        params: { page: paginaActual, pageSize: lotesPorPagina }
+        params: { page, pageSize: lotesPorPagina }
       });
 
-      const total = res.headers['x-total-count'] || res.headers['X-Total-Count'];
-      const totalNum = total ? Number(total) : 0;
-
       setLotes(res.data);
-      setTotalItems(totalNum);
+      setPaginaActual(page);
+
+      const total = res.headers['x-total-count'];
+      if (total) setTotalItems(Number(total));
     } catch {
       toast.error('Error al cargar lotes');
     }
-  }, [paginaActual]);
+  }, [paginaActual, totalItems]);
 
   const cargarProductos = async () => {
     try {
@@ -89,8 +80,10 @@ export default function AdminHome() {
           await API.delete(`/lote/${loteId}`);
           toast.success('Lote eliminado con éxito');
 
-          await cargarLotes();
+          // Recargar la página actual después de eliminar
+          cargarLotes(paginaActual);
 
+          // Verificar y eliminar producto si no tiene lotes restantes
           const resLotes = await API.get('/lote', { params: { page: 1, pageSize: 1000 } });
           const lotesRestantes = resLotes.data.filter(l => l.productoId === productoId);
           if (lotesRestantes.length === 0) {
@@ -106,20 +99,18 @@ export default function AdminHome() {
   };
 
   useEffect(() => {
-    cargarLotes();
-  }, [cargarLotes]);
-
-  useEffect(() => {
+    cargarLotes(paginaActual);
     cargarProductos();
     cargarCategorias();
-  }, [modalType]);
+  }, [cargarLotes, modalType, paginaActual]);
 
-  // Filtrado frontend
   const lotesFiltrados = lotes.filter(lote =>
     (lote.producto?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lote.producto?.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())) &&
     (selectedCategories.length === 0 || selectedCategories.includes(lote.producto?.categoriaId))
   );
+
+  const totalPaginas = Math.ceil(totalItems / lotesPorPagina);
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -189,6 +180,7 @@ export default function AdminHome() {
           <LoteCard
             key={lote.id}
             lote={lote}
+            esAdmin={true} // Esto controla si mostramos los botones de editar y eliminar
             onEdit={() => {
               setProductoEdit(lote.producto);
               setModalType('producto');
@@ -198,12 +190,42 @@ export default function AdminHome() {
         ))}
       </div>
 
-      {/* Usamos el componente de paginación aquí */}
-      <Pagination
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        onChangePagina={setPaginaActual}
-      />
+      {/* Paginación */}
+      <div className="flex flex-col items-center mt-6 space-y-2">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => cargarLotes(paginaActual - 1)}
+            disabled={paginaActual === 1}
+            className="px-3 py-1 rounded bg-[#d2006e] text-white disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          {[...Array(totalPaginas).keys()].map(num => (
+            <button
+              key={num + 1}
+              onClick={() => cargarLotes(num + 1)}
+              className={`px-3 py-1 rounded ${
+                paginaActual === num + 1
+                  ? 'bg-[#a30058] text-white'
+                  : 'bg-[#f5d4e4] text-[#d2006e]'
+              }`}
+            >
+              {num + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => cargarLotes(paginaActual + 1)}
+            disabled={paginaActual === totalPaginas}
+            className="px-3 py-1 rounded bg-[#d2006e] text-white disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+        </div>
+
+        <div className="text-[#d2006e] font-semibold">
+          Página {paginaActual} de {totalPaginas || 1}
+        </div>
+      </div>
 
       <ModalsContainer
         modalType={modalType}
@@ -212,7 +234,7 @@ export default function AdminHome() {
         setProductoEdit={setProductoEdit}
         categorias={categorias}
         productos={productos}
-        recargarLotes={cargarLotes}
+        recargarLotes={() => cargarLotes(paginaActual)}
         recargarCategorias={cargarCategorias}
       />
     </div>

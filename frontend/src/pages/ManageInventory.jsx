@@ -70,6 +70,7 @@ export default function ManageInventory() {
               <th className="text-left p-3">Cantidad Resultante</th>
               <th className="text-left p-3">Fecha</th>
               <th className="text-left p-3">Usuario</th>
+              <th className="text-left p-3">Observacion</th>
             </tr>
           </thead>
           <tbody>
@@ -82,6 +83,7 @@ export default function ManageInventory() {
                 <td className="p-3">{mov.cantidadResultante}</td>
                 <td className="p-3">{new Date(mov.fechaMovimiento).toLocaleString()}</td>
                 <td className="p-3">{mov.usuario?.usuario}</td>
+                <td className="p-3">{mov.observacion}</td>
               </tr>
             ))}
           </tbody>
